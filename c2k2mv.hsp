@@ -1,0 +1,126 @@
+#packopt runtime "myicon.hrt"
+#packopt name "chara-2k2mv"
+#include "a2d.hsp"
+#include "dand2mod.hsp"
+title "chara-2k2mv"
+
+DandD_SetWindow 1
+DandD_SetSubLabel *dd
+mes "Please drag and drop RPG MAKER 2000-03 CharSet."
+mes
+mes "(BMP or Non-transparent PNG)"
+mes
+stop
+
+*dd
+if DandD_GetInfo(0)!=1{
+	mes "ERROR : Please drag and drop only one."
+}else{
+	fname = DandD_GetPath(0)
+	split fname,".",f1,f2
+	if f2="bmp":goto *start
+	if f2="png":goto *start
+	mes "ERROR : Not supported format."
+}
+stop
+
+*start
+DandD_SetWindow 0
+buffer 1
+	gsel 1
+	picload fname
+	charW = ginfo(12)
+	charH = ginfo(13)
+	if charW!=288 && charH!=256{
+		dialog "This image is size outside the standard.\nMay I continue?",3
+		if stat=7 : end
+	}
+
+screen 0,charW*2,charH*2
+	gzoom charW*2,charH*2,1,0,0,charW,charH
+	alrgb="[COLORS]"
+	repeat
+		redraw 0
+		color alr,alg,alb
+		boxf 0,0,ginfo_sizex,ginfo_sizey/24
+		if (alr+alg+alb)/3>200:color:else:color 255,255,255
+		pos ginfo_sizex/2*0,0:mes" Click the transparent color & press the [Y] keyÅF "+alrgb
+		redraw 1
+		getkey kc,1 : if kc {
+			pget mousex,mousey
+			alr = ginfo_r
+			alg = ginfo_g
+			alb = ginfo_b
+			alrgb = ""+alr+", "+alg+", "+alb
+		}
+		getkey ke,89 : if ke {
+			break
+		}
+		await
+	loop
+	cls
+	mes "Sorting...":await 100
+
+celload fname,1
+	gsel 1
+	charW = ginfo(12)
+	charH = ginfo(13)
+	celdiv 1,0,charH/8
+
+buffer 2,charW,charH
+	gsel 2
+	pos 0,charH/8*3 : celput 1,0
+	pos 0,charH/8*2 : celput 1,1
+	pos 0,charH/8*0 : celput 1,2
+	pos 0,charH/8*1 : celput 1,3
+	pos 0,charH/8*7 : celput 1,4
+	pos 0,charH/8*6 : celput 1,5
+	pos 0,charH/8*4 : celput 1,6
+	pos 0,charH/8*5 : celput 1,7
+
+gsel 0
+	mes "Expanding...":await 100
+
+buffer 1,charW*3,charH*3
+	gsel 1
+	pos 0,0 : gzoom charW*3,charH*3,2,0,0,charW,charH
+	charW = ginfo(12)
+	charH = ginfo(13)
+	
+gsel 0
+	mes "Transparenting...":await 100
+
+alCreateImage 0,charW,charH
+alCopyScreenToImage 1,0
+
+alSelectImage 0
+
+for x,0,charW,1
+	for y,0,charH,1
+		if alGetPixel(x,y) = ARGB(255,alr,alg,alb) {
+			alSetPixel x, y, alGetPixel(x,y)^ARGB(255,0,0,0)
+		}else{
+			alSetPixel x, y, alGetPixel(x,y)
+		}
+	next
+next
+
+gsel 0
+	mes "Please tell me where to save."
+
+dialog "png",17,"Transparent PNG"
+rs=refstr
+st=stat
+
+if st=0 {
+	dialog "ERRORÅFSaving canceled. (HSP)"
+}else{
+	mes "Saving... : "+rs
+	alSaveFile ""+rs+".png","image/png"
+	if stat=-1{
+		dialog "ERRORÅFSaving failed.(A2D)"
+	}else{
+		dialog "Succeeded!"
+	}
+}
+end
